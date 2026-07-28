@@ -45,44 +45,21 @@ gating, usage accounting, and an operator-facing admin plane — growing the sch
 
 ## 2. Architecture
 
-```mermaid
-flowchart TD
-    Browser["React 19 SPA<br/>(Browser)"]
-    Nginx["Nginx Reverse Proxy<br/>50 MB body limit"]
-    Express["Express API<br/>Node.js · ESM · Port 5000"]
-    Guard["Global auth guard<br/>verifyToken → req.user"]
-    Tenant["Tenant scoping<br/>company_reg_num on every query"]
-    Plan["Plan / feature gating<br/>requirePlan · requireFeature"]
-    PG[("PostgreSQL<br/>Shared schema · pool max 20")]
-    S3["AWS S3 (af-south-1)<br/>Compliance & ops documents"]
-    EventBridge["EventBridge Scheduler"]
-    Lambda["Lambda<br/>Statement trigger"]
+![Single-tenant architecture: a React SPA behind Nginx calls an Express API whose route modules sit below a single global auth guard; the model layer issues raw SQL to PostgreSQL and mints presigned S3 URLs for compliance documents, while EventBridge fires a monthly Lambda that calls an authenticated endpoint to generate all client statements in one transaction.](docs/architecture-single-tenant.svg)
 
-    Browser -->|HTTPS| Nginx
-    Nginx -->|proxy_pass| Express
-    Express --> Guard
-    Guard --> Plan
-    Plan --> Tenant
-    Tenant -->|parameterised SQL| PG
-    Express -->|presigned URL read / multipart write| S3
-    EventBridge -->|monthly schedule| Lambda
-    Lambda -->|POST · shared-secret header| Express
-    Express -->|per-tenant loop, one txn each| PG
-```
-
-**Authenticated request path.** The SPA sends `Authorization: Bearer <jwt>` on every call.
-Nginx forwards to Express. A single global `verifyToken` guard mounted in the central router
-validates the token and populates `req.user` with the user's identity, role, tenant key, and
-subscription state. Plan and feature middleware run next where a route is gated. The model layer
-then executes a parameterised query scoped to the tenant. Document access returns a time-limited
-S3 presigned URL minted server-side — AWS credentials never reach the browser.
+**Authenticated request path.** The SPA sends `Authorization: Bearer <jwt>` on every call. Nginx
+forwards to Express. A single global `verifyToken` guard mounted in the central router validates
+the token and populates the request with the user's identity, role, and tenant key. The model
+layer then executes a parameterised query. Document access returns a time-limited S3 presigned
+URL minted server-side — AWS credentials never reach the browser.
 
 **Scheduled statement generation.** EventBridge fires a Lambda on the 1st of each month. The
 Lambda calls `POST /api/statements/generate` with a shared-secret bearer token, authenticated
-ahead of the normal JWT path. In the single-tenant system that ran one generation pass inside one
-transaction. In the SaaS version the handler enumerates every active company and runs a
-generation pass per tenant, each in its own transaction, collecting per-company success and
-failure — so one operator's bad data cannot roll back everyone else's month-end.
+ahead of the normal JWT path. The Lambda is a trigger, not an implementation — the generation
+logic stays inside the API next to the models it depends on.
+
+The multi-tenant version of this diagram — the middleware chain, the admin plane, and the
+per-tenant month-end — is in [Part II](#5-part-ii--the-multi-tenant-conversion).
 
 ---
 
@@ -242,6 +219,8 @@ month in one operation — isn't possible either.
 Turning a system built for one customer into one serving several is mostly not a feature problem.
 It is a problem of adding an invariant to code that was written without it, and then having no
 mechanism that enforces it.
+
+![Multi-tenant architecture: the same Express pipeline gains a middleware chain — the auth guard populates the tenant key and plan state from the JWT, a read-only guard rejects writes from suspended tenants, plan and feature middleware gate access, and usage checks warn without blocking; the model layer filters every query by tenant against a shared schema of 29 tenant-scoped and 6 global tables, a cross-tenant super-admin plane assigns plans and suspends accounts, and the scheduled month-end loops tenants with one transaction each.](docs/architecture-multi-tenant.svg)
 
 ### Shared schema with a discriminator column, not a database per tenant
 

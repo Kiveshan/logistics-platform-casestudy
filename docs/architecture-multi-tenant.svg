@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 880" width="1060" height="880" role="img" aria-labelledby="t2 d2">
+  <title id="t2">Multi-tenant SaaS architecture</title>
+  <desc id="d2">The same Express pipeline gains a middleware chain: the auth guard populates the tenant key and plan state from the JWT, a read-only guard rejects writes from suspended tenants, plan and feature middleware gate access, and usage checks warn without blocking. The model layer filters every query by company_reg_num against a shared schema of 29 tenant-scoped and 6 global tables. A cross-tenant super-admin plane assigns plans and suspends accounts, and the scheduled month-end run loops tenants with one transaction each. Tenant isolation is enforced in application code, not by row-level security.</desc>
+
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7d94"/>
+    </marker>
+    <style>
+      .h    { font: 600 22px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #e6edf3; }
+      .hs   { font: 400 13px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #7d8da0; }
+      .lg   { font: 400 11.5px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #9fb0c4; }
+      .bt   { font: 600 15px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #e6edf3; }
+      .bs   { font: 400 10.5px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #9fb0c4; }
+      .rs   { font: 400 11.5px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #9fb0c4; }
+      .it   { font: 600 12.5px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #dbe5ef; }
+      .is   { font: 400 10.5px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #8b9bad; }
+      .lbl  { font: 400 10.5px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #7d8da0; }
+      .warn { font: 600 13px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #f0b429; }
+      .warns{ font: 400 11.5px ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; fill: #c9b48a; }
+      .acc  { fill: #f778ba; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .conn { stroke: #6b7d94; stroke-width: 1.6; fill: none; marker-end: url(#a2); }
+    </style>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="1059" height="879" rx="14" fill="#0e1420" stroke="#1e2a3d"/>
+
+  <text class="h"  x="40" y="52">Multi-Tenant SaaS Conversion</text>
+  <text class="hs" x="40" y="76">Shared schema, plan gating, an operator admin plane, and a per-tenant month-end</text>
+  <rect x="742" y="62" width="11" height="11" rx="2" fill="none" stroke="#f778ba" stroke-width="1.6"/>
+  <text class="lg" x="762" y="72">new or reshaped by the conversion</text>
+  <line x1="40" y1="96" x2="1020" y2="96" stroke="#1e2a3d"/>
+
+  <!-- Tenant SPA -->
+  <rect x="48" y="124" width="340" height="84" rx="10" fill="#101a2b" stroke="#2f5d9e"/>
+  <text class="bt" x="68" y="150">Tenant SPA — React 19</text>
+  <text class="bs" x="68" y="172"><tspan class="mono">JWT: company_reg_num · tier · status · trial_ends_at</tspan></text>
+  <text class="bs" x="68" y="190">Routes to lite, suspended, or trial screens by state</text>
+
+  <path class="conn" d="M 218 208 L 218 238"/>
+
+  <!-- Nginx -->
+  <rect x="48" y="244" width="340" height="56" rx="10" fill="#0f1725" stroke="#3a4a63"/>
+  <text class="bt" x="68" y="270">Nginx</text>
+  <text class="bs" x="68" y="288">TLS termination · 50 MB body limit</text>
+
+  <path class="conn" d="M 218 300 L 218 334"/>
+
+  <!-- Express pipeline -->
+  <rect x="48" y="340" width="340" height="348" rx="10" fill="#0d1220" stroke="#4a3a7a"/>
+  <text class="bt" x="68" y="366">Express API — middleware chain</text>
+  <text class="bs" x="68" y="384">every stage reads the tenant key from the verified token</text>
+
+  <rect x="64" y="398" width="308" height="46" rx="7" fill="#161f33" stroke="#3d5175"/>
+  <text class="it" x="78" y="418"><tspan class="mono">verifyToken</tspan> — one global guard</text>
+  <text class="is" x="78" y="435">identity · role · tenant key · plan state</text>
+
+  <rect x="64" y="452" width="308" height="46" rx="7" fill="#1a1220" stroke="#7a3560"/>
+  <text class="it" x="78" y="472"><tspan class="mono">readOnlyMode</tspan></text>
+  <text class="is" x="78" y="489">402 on writes when suspended · GET always passes</text>
+
+  <rect x="64" y="506" width="308" height="46" rx="7" fill="#1a1220" stroke="#7a3560"/>
+  <text class="it" x="78" y="526"><tspan class="mono">requirePlan</tspan> / <tspan class="mono">requireFeature</tspan></text>
+  <text class="is" x="78" y="543">tier rank compare + <tspan class="mono">plan_features</tspan> lookup</text>
+
+  <rect x="64" y="560" width="308" height="46" rx="7" fill="#1a1220" stroke="#7a3560"/>
+  <text class="it" x="78" y="580"><tspan class="mono">checkUsageLimits</tspan></text>
+  <text class="is" x="78" y="597">warns and bills at the cap — never blocks, fails open</text>
+
+  <rect x="64" y="614" width="308" height="58" rx="7" fill="#141c2e" stroke="#24314a"/>
+  <text class="it" x="78" y="634">Controllers → Models</text>
+  <text class="is" x="78" y="651">every query filtered by <tspan class="mono">company_reg_num</tspan></text>
+
+  <path class="conn" d="M 218 688 L 218 730"/>
+  <text class="lbl" x="230" y="713">scoped by tenant on every read and write</text>
+
+  <!-- PostgreSQL -->
+  <rect x="48" y="736" width="340" height="88" rx="10" fill="#0e1a17" stroke="#2d6a45"/>
+  <text class="bt" x="68" y="762">PostgreSQL — one shared schema</text>
+  <text class="bs" x="68" y="784">29 tenant-scoped tables · 6 global reference tables</text>
+  <text class="bs" x="68" y="802"><tspan class="mono">plans · plan_features · company_usage · billing_events</tspan></text>
+
+  <!-- Admin plane → Nginx -->
+  <path class="conn" d="M 440 272 L 392 272"/>
+
+  <!-- Admin plane -->
+  <rect x="440" y="170" width="572" height="160" rx="10" fill="#1a0f18" stroke="#7a3560"/>
+  <text class="bt" x="462" y="196">Super-admin plane — cross-tenant</text>
+  <text class="rs" x="462" y="217">Enters through the same SPA and the same global guard, one role above every tenant</text>
+  <line x1="462" y1="231" x2="990" y2="231" stroke="#3a2130"/>
+  <text class="rs" x="462" y="252">Assign, upgrade, or downgrade a plan · start a trial · suspend and reactivate</text>
+  <text class="rs" x="462" y="272">Per-tenant seat and vehicle overrides, so a negotiated deal needs no new plan row</text>
+  <text class="rs" x="462" y="292">No payment gateway — B2B contracts with setup fees and invoicing, sold by a human</text>
+  <text class="rs" x="462" y="315" fill="#f778ba">Every action appends to <tspan class="mono">billing_events</tspan> — who did what, and when</text>
+
+  <!-- Express → S3 -->
+  <path class="conn" d="M 388 412 L 434 412"/>
+
+  <!-- S3 -->
+  <rect x="440" y="366" width="572" height="92" rx="10" fill="#191408" stroke="#6b5218"/>
+  <text class="bt" x="462" y="394">AWS S3 — af-south-1</text>
+  <text class="rs" x="462" y="416">Compliance documents, read through short-lived presigned URLs minted server-side</text>
+  <text class="rs" x="462" y="437">A presigned URL is a bearer token for that object until it expires — issuance is audited, access is not</text>
+
+  <!-- Scheduler → Express -->
+  <path class="conn" d="M 440 660 L 392 660"/>
+
+  <!-- Scheduled month-end -->
+  <rect x="440" y="494" width="572" height="240" rx="10" fill="#1a0f18" stroke="#7a3560"/>
+  <text class="bt" x="462" y="522">Scheduled month-end — now per tenant</text>
+
+  <rect x="458" y="536" width="536" height="44" rx="7" fill="#150d14" stroke="#3f2434"/>
+  <text class="it" x="474" y="554">EventBridge → Lambda, 1st of each month</text>
+  <text class="is" x="474" y="571">shared secret checked ahead of the JWT path, so no user session is involved</text>
+
+  <rect x="458" y="592" width="536" height="44" rx="7" fill="#150d14" stroke="#3f2434"/>
+  <text class="it" x="474" y="610">Enumerate every active company, then loop</text>
+  <text class="is" x="474" y="627">one generation pass per tenant, each inside its own transaction</text>
+
+  <rect x="458" y="648" width="536" height="56" rx="7" fill="#150d14" stroke="#3f2434"/>
+  <text class="it" x="474" y="668">Per-company success and failure collected</text>
+  <text class="is" x="474" y="685">one operator's bad data can no longer roll back everyone else's month-end</text>
+
+  <!-- Known gap callout -->
+  <rect x="440" y="760" width="572" height="84" rx="10" fill="#1c1408" stroke="#8a5a1a"/>
+  <text class="warn"  x="462" y="788">Known gap — isolation is an application invariant</text>
+  <text class="warns" x="462" y="810">There is no row-level security. Every model function must carry the tenant predicate, and one</text>
+  <text class="warns" x="462" y="829">written without it is a cross-tenant leak that no database constraint will catch.</text>
+</svg>
